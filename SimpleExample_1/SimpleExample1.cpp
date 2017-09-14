@@ -23,7 +23,7 @@ void err_quit(char *msg)
 		NULL, WSAGetLastError(),
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		(LPTSTR)&lpMsgBuf, 0, NULL);
-	MessageBox(NULL, (LPCTSTR)lpMsgBuf, (LPWSTR)msg, MB_ICONERROR);	//여기
+	MessageBox(NULL, (LPCTSTR)lpMsgBuf, msg, MB_ICONERROR);	//여기
 	LocalFree(lpMsgBuf);
 	exit(1);
 }
@@ -151,7 +151,7 @@ DWORD WINAPI TCPServer6(LPVOID arg)
 		char ipaddr[50];
 		DWORD ipaddrlen = sizeof(ipaddr);
 		WSAAddressToString((SOCKADDR *)&clientaddr, sizeof(clientaddr),
-			NULL, (LPWSTR)ipaddr, &ipaddrlen);	//여기
+			NULL, ipaddr, &ipaddrlen);	//여기
 		printf("\n[TCP 서버] 클라이언트 접속: %s\n", ipaddr);
 
 		// 클라이언트와 데이터 통신

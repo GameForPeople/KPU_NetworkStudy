@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
 	SOCKET client_sock;
 	SOCKADDR_IN clientaddr;
 	int addrlen;
-	char *buf = new char[199999999];
+	char *buf = new char[999999999];
 	//std::vector<char> buf2;
 	int len;
 

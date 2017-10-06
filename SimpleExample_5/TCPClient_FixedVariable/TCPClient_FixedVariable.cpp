@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
 	std::vector<int> cont;
 
 	// test.bin 이라는 이진파일을 읽기 전용으로 열기
-	if ((in = fopen("MovieFile_3.mp4", "rb")) == NULL) {
+	if ((in = fopen("MovieFile_6.mp4", "rb")) == NULL) {
 		fputs("파일 열기 에러!", stderr);
 		exit(1);
 	}

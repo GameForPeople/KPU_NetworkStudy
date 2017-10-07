@@ -18,12 +18,20 @@
 #define SERVERPORT			9000
 
 #define MAX_POWER_MAN		999999999
-#define BUF_SIZE			100000000
+int BUF_SIZE =				100000000;
 
+std::atomic<int>			typeUI = 0;
 //std::atomic<int>			distanceUI = 0;
 volatile int				distanceUI = 0;
 
 std::mutex					mylock;
+
+struct myDataStruct {
+	int len;
+	int type;
+};
+
+myDataStruct myData;
 
 // 소켓 함수 오류 출력 후 종료
 void err_quit(char *msg)
@@ -107,7 +115,7 @@ void Listen(int &retval, SOCKET& listen_sock) {
 	if (retval == SOCKET_ERROR) err_quit("listen()");
 }
 
-void Recv(int &retval, SOCKET& listen_sock, SOCKET& client_sock, SOCKADDR_IN& clientaddr, char *buf, int& len, int& addrlen) {
+void Recv(int &retval, SOCKET& listen_sock, SOCKET& client_sock, SOCKADDR_IN& clientaddr, int& len, int& addrlen) {
 	while (1) {
 		int count;
 		// accept()
@@ -125,7 +133,7 @@ void Recv(int &retval, SOCKET& listen_sock, SOCKET& client_sock, SOCKADDR_IN& cl
 		// 클라이언트와 데이터 통신
 		while (1) {
 			// 데이터 받기(고정된! 즉 약속된 길이!)
-			retval = recvn(client_sock, (char *)&len, sizeof(int), 0, 0);
+			retval = recvn(client_sock, (char *)&myData, sizeof(myDataStruct), 0, 0);
 			if (retval == SOCKET_ERROR) {
 				err_display("recv()");
 				break;
@@ -134,13 +142,27 @@ void Recv(int &retval, SOCKET& listen_sock, SOCKET& client_sock, SOCKADDR_IN& cl
 				break;
 			}
 
-			count = len / BUF_SIZE;
-
-			int partDistance = 860 / count;
-
 			FILE *fp = NULL;
 
-			fp = fopen("new3.mp4", "wb");
+			if (myData.type == 1) {
+				fp = fopen("Hello_TCP.mp4", "wb");
+				if (myData.len < BUF_SIZE)
+					BUF_SIZE = myData.len / 10;
+			}
+			else if (myData.type == 2) {
+				fp = fopen("Hello_TCP.png", "wb");
+				BUF_SIZE = myData.len / 10;
+			}
+			else if (myData.type == 3) {
+				fp = fopen("Hello_TCP.txt", "wb");
+				BUF_SIZE = myData.len / 10;
+			}
+			typeUI = myData.type;
+			char* buf = new char[BUF_SIZE];
+
+			count = myData.len / BUF_SIZE;
+			
+			int partDistance = 860 / count;
 
 			// 데이터 받기(가변 길이)
 			while (count) {

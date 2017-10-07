@@ -107,7 +107,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE
 #pragma endregion
 
 //char *buf = new char[MAX_POWER_MAN];
-char buf[BUF_SIZE];
 
 #pragma region [WndProc]
 LRESULT CALLBACK WndProc(HWND hwnd, UINT
@@ -143,6 +142,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 	static CImage				CarUI;
 	static CImage				NumberUI;
 	static CImage				PerUI;
+	static CImage				TypeUI;
+	static CImage				CheckUI;
+
 
 	//static BOOL					isOnFunction[3];
 	static int					isOnFunction[4];	// LastFunction is 동기화문제.
@@ -172,6 +174,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 		NumberUI.Load("NumberUI.png");
 
 		PerUI.Load("PerImg.png");
+
+		TypeUI.Load("TypeUI.png");
+		CheckUI.Load("CheckUI.png");
 
 		for (int i = 0; i < 4; i++)
 			isOnFunction[i] = FALSE;
@@ -226,6 +231,18 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 			barDis = Dis - 20;
 			if (barDis < 0) barDis = 0;
 			InBarUI.StretchBlt(hdc, 215, 565, barDis, InBarUI.GetHeight() - 10, SRCCOPY);
+
+			TypeUI.BitBlt(hdc, 950, 20, SRCCOPY);
+
+
+			if (typeUI) {
+				if (typeUI == 1)
+					CheckUI.BitBlt(hdc, 952, 20 + TypeUI.GetHeight(), SRCCOPY);
+				else if (typeUI == 2)
+					CheckUI.BitBlt(hdc, 1057, 20 + TypeUI.GetHeight(), SRCCOPY);
+				else if (typeUI == 3)
+					CheckUI.BitBlt(hdc, 1160, 20 + TypeUI.GetHeight(), SRCCOPY);
+			}
 		}
 
 		SetStretchBltMode(mainHDC, COLORONCOLOR);
@@ -242,7 +259,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 			isOnFunction[3] = true;
 			th = std::thread{ []() {
 				Listen(retval, listen_sock);
-				Recv(retval, listen_sock, client_sock, clientaddr, buf, len, addrlen);
+				Recv(retval, listen_sock, client_sock, clientaddr, len, addrlen);
 				}
 			};
 		}

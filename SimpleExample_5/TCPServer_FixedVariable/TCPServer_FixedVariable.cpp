@@ -9,8 +9,6 @@
 
 #include "main.h"
 
-
-
 #pragma region [CreateStatic]
 HINSTANCE hInst;
 HWND	  Hwnd;
@@ -108,6 +106,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE
 }
 #pragma endregion
 
+//char *buf = new char[MAX_POWER_MAN];
+char buf[BUF_SIZE];
+
 #pragma region [WndProc]
 LRESULT CALLBACK WndProc(HWND hwnd, UINT
 	iMessage, WPARAM wParam, LPARAM lParam)
@@ -132,15 +133,26 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 	static SOCKET client_sock;
 	static SOCKADDR_IN clientaddr;
 	static int addrlen;
-	static char *buf = new char[999999999];
 	static int len;
 
 	static CImage				Button;
 	static CImage				Grid;
 	static CImage				ColorUI[2];
+	static CImage				BarUI;
+	static CImage				InBarUI;
+	static CImage				CarUI;
+	static CImage				NumberUI;
+	static CImage				PerUI;
 
 	//static BOOL					isOnFunction[3];
-	static int					isOnFunction[3];
+	static int					isOnFunction[4];	// LastFunction is 동기화문제.
+	int							Dis;
+	int							barDis;
+	int							numDis;
+	int							numberPer[3];
+
+
+	static std::thread			th;
 
 	switch (iMessage) {
 	case WM_CREATE:
@@ -153,12 +165,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 		ColorUI[0].Load("ColorUI_Red.png");
 		ColorUI[1].Load("ColorUI_Blue.png");
 
-		for (int i = 0; i < 3; i++)
-			isOnFunction[i] = FALSE;
+		BarUI.Load("BarUI.png");
+		InBarUI.Load("InBarUI.png");
+		CarUI.Load("CarUI.png");
 
+		NumberUI.Load("NumberUI.png");
+
+		PerUI.Load("PerImg.png");
+
+		for (int i = 0; i < 4; i++)
+			isOnFunction[i] = FALSE;
 		//
 		GetClientRect(hwnd, &rect);
-		//SetTimer(hwnd, 1, 1, NULL);
+		SetTimer(hwnd, 1, 600, NULL);
 		//
 
 		break;
@@ -181,7 +200,33 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 		ColorUI[isOnFunction[1]].StretchBlt(hdc, 20 + 230, 10 + Button.GetHeight() + 10, 220, Button.GetHeight(), SRCCOPY);
 		ColorUI[isOnFunction[2]].StretchBlt(hdc, 20 + 460, 10 + Button.GetHeight() + 10, 220, Button.GetHeight(), SRCCOPY);
 
-		//Grid.TransparentBlt(hdc, 0, 0, 1280, 720, RGB(255, 255, 255));
+		if (isOnFunction[3]) {
+			BarUI.BitBlt(hdc, 200, 550, SRCCOPY);
+
+			mylock.lock();
+			CarUI.BitBlt(hdc, 200 - CarUI.GetWidth() / 2 + distanceUI, (550 - CarUI.GetHeight()), SRCCOPY);
+			Dis = distanceUI;
+			mylock.unlock();
+
+			numDis = 100 * Dis / 860;
+			numberPer[0] = numDis / 100;
+			numberPer[1] = numDis / 10;
+			numberPer[2] = numDis % 10;
+
+			if (Dis == 860)
+				numberPer[1] = 0;
+
+			if(numberPer[0])
+				NumberUI.StretchBlt(hdc, 440, 350, 80, 80, numberPer[0] * NumberUI.GetWidth() / 10, 0, NumberUI.GetWidth() / 10, NumberUI.GetHeight(), SRCCOPY);
+			
+			NumberUI.StretchBlt(hdc, 520, 350, 80, 80, numberPer[1] * NumberUI.GetWidth() / 10, 0, NumberUI.GetWidth() / 10, NumberUI.GetHeight(), SRCCOPY);
+			NumberUI.StretchBlt(hdc, 600, 350, 80, 80, numberPer[2] * NumberUI.GetWidth() / 10, 0, NumberUI.GetWidth() / 10, NumberUI.GetHeight(), SRCCOPY);
+			PerUI.StretchBlt(hdc, 680, 350, 80, 80, SRCCOPY);
+
+			barDis = Dis - 20;
+			if (barDis < 0) barDis = 0;
+			InBarUI.StretchBlt(hdc, 215, 565, barDis, InBarUI.GetHeight() - 10, SRCCOPY);
+		}
 
 		SetStretchBltMode(mainHDC, COLORONCOLOR);
 		SetStretchBltMode(hdc, COLORONCOLOR);
@@ -193,9 +238,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 		EndPaint(hwnd, &ps);
 #pragma endregion
 
-		if (isOnFunction[2]) {
-			Listen(retval, listen_sock);
-			Recv(retval, listen_sock, client_sock, clientaddr, buf, len, addrlen);
+		if (isOnFunction[2] && !isOnFunction[3]) {
+			isOnFunction[3] = true;
+			th = std::thread{ []() {
+				Listen(retval, listen_sock);
+				Recv(retval, listen_sock, client_sock, clientaddr, buf, len, addrlen);
+				}
+			};
 		}
 		break;
 	}
@@ -248,6 +297,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 	}
 	case WM_DESTROY:
 	{
+		th.join();
+
 		// closesocket()
 		closesocket(listen_sock);
 

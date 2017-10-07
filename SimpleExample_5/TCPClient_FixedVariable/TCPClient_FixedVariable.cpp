@@ -1,9 +1,16 @@
+//#ifdef UNICODE
+//#pragma comment(linker, "/entry:wWinMainCRTStartup /subsystem:console") 
+//#else
+//#pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console") 
+//#endif
+
 #pragma comment(lib, "ws2_32")
 #include <winsock2.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
 #include <vector>
+#include <Windows.h>
 
 
 #define SERVERIP   "127.0.0.1"
@@ -68,7 +75,7 @@ int main(int argc, char *argv[])
 	std::vector<int> cont;
 
 	// test.bin 이라는 이진파일을 읽기 전용으로 열기
-	if ((in = fopen("MovieFile_6.mp4", "rb")) == NULL) {
+	if ((in = fopen("MovieFile_5.mp4", "rb")) == NULL) {
 		fputs("파일 열기 에러!", stderr);
 		exit(1);
 	}

@@ -12,12 +12,11 @@
 #include <vector>
 #include <Windows.h>
 
-
 #define SERVERIP   "127.0.0.1"
 #define SERVERPORT 9000
 
 struct myDataStruct {
-	int len;
+	unsigned int len;
 	int type;
 };
 
@@ -102,10 +101,6 @@ int main(int argc, char *argv[])
 
 	fseek(in, 0, SEEK_END);
 
-	// 이진 파일, 1바이트씩 읽어, 헥사로 출력
-	//while ((ch = fgetc(in)) != EOF) {
-	//	printf("%02X ", ch);
-	//}
 	unsigned long fileSize = ftell(in);
 	
 	char *buf = new char[fileSize];
@@ -114,32 +109,23 @@ int main(int argc, char *argv[])
 
 	fread(buf, sizeof(char), fileSize, in);
 
-	//while ((ch = fgetc(in)) != EOF) {
-	//	cont.push_back(ch);
-	//}
+	len = fileSize;//strlen(cont);
+	myData.len = fileSize;
+
+	// 데이터 보내기(고정 길이)
+	retval = send(sock, (char *)&(myData), sizeof(myDataStruct), 0);
+	if(retval == SOCKET_ERROR){
+			err_display("send()");
+		}
+
+	// 데이터 보내기(가변 길이)
+	retval = send(sock, buf, len, 0);
+	if(retval == SOCKET_ERROR){
+			err_display("send()");
+		}
 	
-	//int* ptr = &(cont[0]);
-		//memcpy(buf, ptr, 500000);
-
-	// 서버와 데이터 통신
-		// 데이터 입력(시뮬레이션)
-		len = fileSize;//strlen(cont);
-		myData.len = fileSize;
-
-		// 데이터 보내기(고정 길이)
-		retval = send(sock, (char *)&(myData), sizeof(myDataStruct), 0);
-		if(retval == SOCKET_ERROR){
-			err_display("send()");
-		}
-
-		// 데이터 보내기(가변 길이)
-		retval = send(sock, buf, len, 0);
-		if(retval == SOCKET_ERROR){
-			err_display("send()");
-		}
-		
-		printf("[TCP 클라이언트] %d+%d바이트를 "
-			"보냈습니다.\n", sizeof(int), retval);
+	printf("[TCP 클라이언트] %d + %d바이트를 "
+		"보냈습니다.\n", sizeof(int), retval);
 	// closesocket()
 	closesocket(sock);
 

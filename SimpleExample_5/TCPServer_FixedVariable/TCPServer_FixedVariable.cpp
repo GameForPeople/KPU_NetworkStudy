@@ -16,9 +16,10 @@ LPCTSTR lpszClass = "Network GoFile  [ 2013192027 : 원성연 ]";
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 
+//char *buf = new char[MAX_POWER_MAN];
 #pragma endregion
 
-#pragma region [WinMain]
+#pragma region [Define WinMain]
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE
 	hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
@@ -106,33 +107,31 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE
 }
 #pragma endregion
 
-//char *buf = new char[MAX_POWER_MAN];
-
 #pragma region [WndProc]
 LRESULT CALLBACK WndProc(HWND hwnd, UINT
 	iMessage, WPARAM wParam, LPARAM lParam)
 {
-	HDC hdc, Memdc;
-	PAINTSTRUCT ps;
+	HDC							hdc, Memdc;
+	PAINTSTRUCT					ps;
 	//HBITMAP hBitmap, OldBitmap;
 	//HFONT hFont, saveFont;
 	//HBRUSH Brush, oldBrush;
 	//HPEN MyPen, OldPen, RedPen;
 
-	static RECT rect;
+	static RECT					rect;
 
-	static int retval;
-	static WSADATA wsa;
-	static SOCKET listen_sock; // = socket(AF_INET, SOCK_STREAM, 0);
+	static int					retval;
+	static WSADATA				wsa;
+	static SOCKET				listen_sock; // = socket(AF_INET, SOCK_STREAM, 0);
 
-	static SOCKADDR_IN serveraddr;
+	static SOCKADDR_IN			serveraddr;
 
-	static bool isListen = false;
+	static bool					isListen = false;
 
-	static SOCKET client_sock;
-	static SOCKADDR_IN clientaddr;
-	static int addrlen;
-	static int len;
+	static SOCKET				client_sock;
+	static SOCKADDR_IN			clientaddr;
+	static int					addrlen;
+	static int					len = 0; //안씀.
 
 	static CImage				Button;
 	static CImage				Grid;
@@ -145,16 +144,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 	static CImage				TypeUI;
 	static CImage				CheckUI;
 
-
 	//static BOOL					isOnFunction[3];
-	static int					isOnFunction[4];	// LastFunction is 동기화문제.
+	static int					isOnFunction[4];	// LastFunction is 동기화문제.. isOnFunction[3] == SyncError;
 	int							Dis;
 	int							barDis;
 	int							numDis;
 	int							numberPer[3];
 
-
-	static std::thread			th;
+	static std::thread			th;				// MainTh --> WinProc, SubTh --> TCP 
 
 	switch (iMessage) {
 	case WM_CREATE:
@@ -180,6 +177,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 
 		for (int i = 0; i < 4; i++)
 			isOnFunction[i] = FALSE;
+		
 		//
 		GetClientRect(hwnd, &rect);
 		SetTimer(hwnd, 1, 600, NULL);
@@ -205,7 +203,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 		ColorUI[isOnFunction[1]].StretchBlt(hdc, 20 + 230, 10 + Button.GetHeight() + 10, 220, Button.GetHeight(), SRCCOPY);
 		ColorUI[isOnFunction[2]].StretchBlt(hdc, 20 + 460, 10 + Button.GetHeight() + 10, 220, Button.GetHeight(), SRCCOPY);
 
-		if (isOnFunction[3]) {
+		if (typeUI) {
 			BarUI.BitBlt(hdc, 200, 550, SRCCOPY);
 
 			mylock.lock();
@@ -213,12 +211,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 			Dis = distanceUI;
 			mylock.unlock();
 
-			numDis = 100 * Dis / 860;
+			numDis = 100 * Dis / OVERALL_LENGTH;
 			numberPer[0] = numDis / 100;
 			numberPer[1] = numDis / 10;
 			numberPer[2] = numDis % 10;
 
-			if (Dis == 860)
+			if (Dis == OVERALL_LENGTH)
 				numberPer[1] = 0;
 
 			if(numberPer[0])
@@ -331,6 +329,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 }
 #pragma endregion
 
+#pragma region [OldVer Main]
 /*
 int main(int argc, char *argv[])
 {
@@ -424,3 +423,4 @@ int main(int argc, char *argv[])
 
 }
 */
+#pragma endregion

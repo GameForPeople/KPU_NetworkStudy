@@ -18,8 +18,5 @@
     <ClCompile Include="TCPClient_FixedVariable.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="TCPClient_FixedVariable_1.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>

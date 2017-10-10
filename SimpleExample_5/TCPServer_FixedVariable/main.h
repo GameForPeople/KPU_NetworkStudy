@@ -12,13 +12,18 @@
 #include <atomic>
 #include <mutex>
 
-#define SCREEN_WIDTH		1280
-#define SCREEN_HEIGHT		720
+#pragma region [Create Static]
+#define	SCREEN_WIDTH		1280
+#define	SCREEN_HEIGHT		720
 
-#define SERVERPORT			9000
+#define	SERVERPORT			9000
 
-#define MAX_POWER_MAN		999999999
-int BUF_SIZE =				100000000;
+#define	MAX_POWER_MAN		999999999
+#define BASE_BUF_SIZE       100000000
+
+#define OVERALL_LENGTH		860
+
+int							BUF_SIZE = BASE_BUF_SIZE;
 
 std::atomic<int>			typeUI = 0;
 //std::atomic<int>			distanceUI = 0;
@@ -27,12 +32,14 @@ volatile int				distanceUI = 0;
 std::mutex					mylock;
 
 struct myDataStruct {
-	int len;
+	unsigned int len;
 	int type;
 };
 
 myDataStruct myData;
+#pragma endregion
 
+#pragma region [Error Function]
 // 소켓 함수 오류 출력 후 종료
 void err_quit(char *msg)
 {
@@ -59,6 +66,8 @@ void err_display(char *msg)
 	printf("[%s] %s", msg, (char *)lpMsgBuf);
 	LocalFree(lpMsgBuf);
 }
+
+#pragma endregion
 
 // 사용자 정의 데이터 수신 함수
 int recvn(SOCKET s, char *buf, int len, int flags, int funcFlag)
@@ -90,7 +99,6 @@ int recvn(SOCKET s, char *buf, int len, int flags, int funcFlag)
 			ptr += received;
 		}
 
-		std::cout << "전송받은 데이터의 길이는 : " << len << std::endl;
 	}
 
 	return (len - left);
@@ -127,7 +135,7 @@ void Recv(int &retval, SOCKET& listen_sock, SOCKET& client_sock, SOCKADDR_IN& cl
 		}
 
 		// 접속한 클라이언트 정보 출력
-		printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d\n",
+		printf("\n[TCP 서버] 클라이언트 접속 성공: IP 주소=%s, 포트 번호=%d\n",
 			inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port));
 
 		// 클라이언트와 데이터 통신
@@ -146,8 +154,8 @@ void Recv(int &retval, SOCKET& listen_sock, SOCKET& client_sock, SOCKADDR_IN& cl
 
 			if (myData.type == 1) {
 				fp = fopen("Hello_TCP.mp4", "wb");
-				if (myData.len < BUF_SIZE)
-					BUF_SIZE = myData.len / 10;
+				//if (myData.len < BUF_SIZE)
+				//	BUF_SIZE = myData.len / 10;
 			}
 			else if (myData.type == 2) {
 				fp = fopen("Hello_TCP.png", "wb");
@@ -158,11 +166,12 @@ void Recv(int &retval, SOCKET& listen_sock, SOCKET& client_sock, SOCKADDR_IN& cl
 				BUF_SIZE = myData.len / 10;
 			}
 			typeUI = myData.type;
+			
 			char* buf = new char[BUF_SIZE];
 
 			count = myData.len / BUF_SIZE;
 			
-			int partDistance = 860 / count;
+			int partDistance = OVERALL_LENGTH / count;
 
 			// 데이터 받기(가변 길이)
 			while (count) {
@@ -184,24 +193,26 @@ void Recv(int &retval, SOCKET& listen_sock, SOCKET& client_sock, SOCKADDR_IN& cl
 				count--;
 			}
 
-			count = len - (len / BUF_SIZE)* BUF_SIZE;
+			count = myData.len - (myData.len / BUF_SIZE)* BUF_SIZE;
 
-			retval = recvn(client_sock, buf, BUF_SIZE, 0, 1);
+			std::cout << "남은 메모리 양" << count << std::endl;
+
+			retval = recvn(client_sock, buf, count, 0, 1);
 			if (retval == SOCKET_ERROR) {
 				err_display("recv()");
 				break;
 			}
 
 			mylock.lock();
-			distanceUI = 860;
+			distanceUI = OVERALL_LENGTH;
 			mylock.unlock();
 
 			fwrite(buf, 1, count, fp);
 			fclose(fp);
 			// 받은 데이터 출력
-			buf[retval] = '\0';
+			//buf[retval] = '\0';
 			//printf("[TCP/%s:%d] %02x\n", inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port), buf);
-
+			std::cout << "전송을 끝냈습니다..." << std::endl;
 			//ofstream으로 한번에 많은 파일 바이너리 복호화?? 힘듬!!! 하아...
 			//std::ofstream outFile("new2.mp4", std::ofstream::binary);
 			//outFile.write(buf, len);

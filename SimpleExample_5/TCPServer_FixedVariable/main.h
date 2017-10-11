@@ -32,8 +32,9 @@ volatile int				distanceUI = 0;
 std::mutex					mylock;
 
 struct myDataStruct {
-	unsigned int len;
+	long long len;
 	int type;
+	char name[256] = { 0 };
 };
 
 myDataStruct myData;
@@ -124,14 +125,13 @@ void Listen(int &retval, SOCKET& listen_sock) {
 }
 
 void Recv(int &retval, SOCKET& listen_sock, SOCKET& client_sock, SOCKADDR_IN& clientaddr, int& len, int& addrlen) {
-	while (1) {
 		int count;
 		// accept()
 		addrlen = sizeof(clientaddr);
 		client_sock = accept(listen_sock, (SOCKADDR *)&clientaddr, &addrlen);
 		if (client_sock == INVALID_SOCKET) {
 			err_display("accept()");
-			break;
+			return;
 		}
 
 		// 접속한 클라이언트 정보 출력
@@ -153,19 +153,16 @@ void Recv(int &retval, SOCKET& listen_sock, SOCKET& client_sock, SOCKADDR_IN& cl
 			FILE *fp = NULL;
 
 			if (myData.type == 1) {
-				fp = fopen("Hello_TCP.mp4", "wb");
-				//if (myData.len < BUF_SIZE)
-				//	BUF_SIZE = myData.len / 10;
+				BUF_SIZE = myData.len / 20;
 			}
-			else if (myData.type == 2) {
-				fp = fopen("Hello_TCP.png", "wb");
+			else if (myData.type != 1) {
 				BUF_SIZE = myData.len / 10;
 			}
-			else if (myData.type == 3) {
-				fp = fopen("Hello_TCP.txt", "wb");
-				BUF_SIZE = myData.len / 10;
-			}
+
 			typeUI = myData.type;
+			
+			std::cout << myData.name << std::endl;
+			fp = fopen(myData.name, "wb");
 			
 			char* buf = new char[BUF_SIZE];
 
@@ -187,7 +184,6 @@ void Recv(int &retval, SOCKET& listen_sock, SOCKET& client_sock, SOCKADDR_IN& cl
 
 				mylock.lock();
 				distanceUI += partDistance;
-				std::cout << distanceUI << " " << partDistance << std::endl;
 				mylock.unlock();
 
 				count--;
@@ -196,11 +192,12 @@ void Recv(int &retval, SOCKET& listen_sock, SOCKET& client_sock, SOCKADDR_IN& cl
 			count = myData.len - (myData.len / BUF_SIZE)* BUF_SIZE;
 
 			std::cout << "남은 메모리 양" << count << std::endl;
-
-			retval = recvn(client_sock, buf, count, 0, 1);
-			if (retval == SOCKET_ERROR) {
-				err_display("recv()");
-				break;
+			if (count) {
+				retval = recvn(client_sock, buf, count, 0, 1);
+				if (retval == SOCKET_ERROR) {
+					err_display("recv()");
+					break;
+				}
 			}
 
 			mylock.lock();
@@ -217,5 +214,4 @@ void Recv(int &retval, SOCKET& listen_sock, SOCKET& client_sock, SOCKADDR_IN& cl
 			//std::ofstream outFile("new2.mp4", std::ofstream::binary);
 			//outFile.write(buf, len);
 		}
-	}
 }

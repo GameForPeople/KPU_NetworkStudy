@@ -113,10 +113,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 {
 	HDC							hdc, Memdc;
 	PAINTSTRUCT					ps;
-	//HBITMAP hBitmap, OldBitmap;
-	//HFONT hFont, saveFont;
-	//HBRUSH Brush, oldBrush;
-	//HPEN MyPen, OldPen, RedPen;
 
 	static RECT					rect;
 
@@ -159,6 +155,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 		if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
 			return 1;
 		
+#pragma region [Load CImage]
 		Button.Load("Button_1.png");
 		Grid.Load("grid.png");
 		ColorUI[0].Load("ColorUI_Red.png");
@@ -174,11 +171,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 
 		TypeUI.Load("TypeUI.png");
 		CheckUI.Load("CheckUI.png");
+#pragma endregion
 
 		for (int i = 0; i < 4; i++)
 			isOnFunction[i] = FALSE;
 		
-		//
+		//WinFunction
 		GetClientRect(hwnd, &rect);
 		SetTimer(hwnd, 1, 600, NULL);
 		//
@@ -256,7 +254,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 		if (isOnFunction[2] && !isOnFunction[3]) {
 			isOnFunction[3] = true;
 			th = std::thread{ []() {
-				Listen(retval, listen_sock);
 				Recv(retval, listen_sock, client_sock, clientaddr, len, addrlen);
 				}
 			};
@@ -294,11 +291,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 			else if (x > 20 + Button.GetWidth() / 3 && x < 20 + 2 * Button.GetWidth() / 3) {
 				//bind()
 				Bind(serveraddr, listen_sock, retval);
-				isOnFunction[1] = TRUE;
 				std::cout << "Bind is On" << std::endl;
+				Listen(retval, listen_sock);
+				std::cout << "Listen is On" << std::endl;
+				isOnFunction[1] = TRUE;
 			}
 			else if (x > 20 + 2 * Button.GetWidth() / 3 && x < 20 + Button.GetWidth()) {
-				std::cout << "Listen is On" << std::endl;
 				isOnFunction[2] = TRUE;
 			}
 		}

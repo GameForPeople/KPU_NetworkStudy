@@ -8,9 +8,11 @@
 #include <Windows.h>
 
 #pragma region [Create Static]
-#define SERVERIP   "127.0.0.1"
-#define SERVERPORT 9000
+#define SERVERIP			"127.0.0.1"
+#define SERVERPORT			9000
 #define BASE_BUF_SIZE       100000000
+#define BIG_DATA_COUNT		20
+#define SMALL_DATA_COUNT	10
 
 struct myDataStruct {
 	long long len;
@@ -58,11 +60,12 @@ int main(int argc, char *argv[])
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
 		return 1;
 
-	// socket()
+	#pragma region [ socket() ]
 	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == INVALID_SOCKET) err_quit("socket()");
+	#pragma endregion
 
-#pragma region [User Interface]
+	#pragma region [User Interface]
 	char addrStr[100];
 	char fileStr[256];
 
@@ -75,12 +78,13 @@ int main(int argc, char *argv[])
 	fgets(fileStr, sizeof(fileStr), stdin);
 	fileStr[strlen(fileStr) - 1] = '\0';
 
-	printf(" 파일 종류를 입력해주세요. \n 1 --> mp4, 2 --> png, 3 --> txt  (서버 소켓 상태 listen 여부 확인) : ");
+	printf(" 파일 종류를 입력해주세요. \n 1 --> 동영상, 2 --> 이미지, 3 --> 텍스트  (입력 전, listen 여부 확인) : ");
 	std::cin >> myData.type;
 
 #pragma endregion
+	
+	#pragma region [ connect() ]
 
-	// connect()
 	SOCKADDR_IN serveraddr;
 	ZeroMemory(&serveraddr, sizeof(serveraddr));
 	serveraddr.sin_family = AF_INET;
@@ -88,6 +92,8 @@ int main(int argc, char *argv[])
 	serveraddr.sin_port = htons(SERVERPORT);
 	retval = connect(sock, (SOCKADDR *)&serveraddr, sizeof(serveraddr));
 	if (retval == SOCKET_ERROR) err_quit("connect()");
+
+	#pragma endregion
 
 	// 데이터 통신에 사용할 변수
 	int len;
@@ -98,7 +104,6 @@ int main(int argc, char *argv[])
 	std::vector<int> cont;
 	unsigned long long fileSize;
 
-	// test.bin 이라는 이진파일을 읽기 전용으로 열기
 	if ((in = fopen(fileStr, "rb")) == NULL) {
 		fputs("파일 열기 에러!", stderr);
 		exit(1);
@@ -108,15 +113,14 @@ int main(int argc, char *argv[])
 	fileSize = _ftelli64(in);
 	fseek(in, 0, SEEK_SET);
 	//rewind(in);
-	std::cout << fileStr << std::endl;
 	memcpy(myData.name, fileStr, strlen(fileStr - 1));
-	std::cout << myData.name << std::endl;
+	std::cout << myData.name << "를 전송중입니다. " << std::endl;
 
 	if (myData.type == 1) {
-		len = fileSize / 20;//strlen(cont);
+		len = fileSize / BIG_DATA_COUNT;//strlen(cont);
 	}
 	else if (myData.type != 1) {
-		len = fileSize / 10;//strlen(cont);
+		len = fileSize / SMALL_DATA_COUNT;//strlen(cont);
 	}
 
 	char *buf = new char[len];
@@ -131,26 +135,26 @@ int main(int argc, char *argv[])
 
 	if (myData.type == 1) {
 	// 데이터 보내기(가변 길이)
-	for (int i = 0; i < 20; i++) {
+	for (int i = 0; i < BIG_DATA_COUNT; i++) {
 		fread(buf, sizeof(char), len, in);
 		retval = send(sock, buf, len, 0);
 		if (retval == SOCKET_ERROR) {
 			err_display("send()");
 		}
 		}
-	if(myData.len - myData.len / 20 * 20)
-		retval = send(sock, buf, myData.len - myData.len / 20 * 20, 0);
+	if(myData.len - myData.len / BIG_DATA_COUNT * BIG_DATA_COUNT)
+		retval = send(sock, buf, myData.len - myData.len / BIG_DATA_COUNT * BIG_DATA_COUNT, 0);
 	}
 	else if (myData.type != 1) {
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < SMALL_DATA_COUNT; i++) {
 			fread(buf, sizeof(char), len, in);
 			retval = send(sock, buf, len, 0);
 			if (retval == SOCKET_ERROR) {
 				err_display("send()");
 			}
 		}
-		if(myData.len - myData.len / 20 * 20)
-			retval = send(sock, buf, myData.len - myData.len / 10 * 10, 0);
+		if(myData.len - myData.len / SMALL_DATA_COUNT * SMALL_DATA_COUNT)
+			retval = send(sock, buf, myData.len - myData.len / SMALL_DATA_COUNT * SMALL_DATA_COUNT, 0);
 	}
 	if (retval == SOCKET_ERROR) {
 		err_display("send()");
@@ -158,6 +162,7 @@ int main(int argc, char *argv[])
 
 	printf("[TCP 클라이언트] %d + %d바이트를 "
 		"보냈습니다.\n", sizeof(int), retval);
+	
 	// closesocket()
 	closesocket(sock);
 

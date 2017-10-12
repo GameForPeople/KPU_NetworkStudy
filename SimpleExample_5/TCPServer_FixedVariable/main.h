@@ -21,6 +21,9 @@
 #define	MAX_POWER_MAN		999999999
 #define BASE_BUF_SIZE       100000000
 
+#define BIG_DATA_COUNT		20
+#define SMALL_DATA_COUNT	10
+
 #define OVERALL_LENGTH		860
 
 int							BUF_SIZE = BASE_BUF_SIZE;
@@ -153,15 +156,15 @@ void Recv(int &retval, SOCKET& listen_sock, SOCKET& client_sock, SOCKADDR_IN& cl
 			FILE *fp = NULL;
 
 			if (myData.type == 1) {
-				BUF_SIZE = myData.len / 20;
+				BUF_SIZE = myData.len / BIG_DATA_COUNT;
 			}
 			else if (myData.type != 1) {
-				BUF_SIZE = myData.len / 10;
+				BUF_SIZE = myData.len / SMALL_DATA_COUNT;
 			}
 
 			typeUI = myData.type;
 			
-			std::cout << myData.name << std::endl;
+			std::cout << myData.name << "를 받는 중입니다. " << std::endl;
 			fp = fopen(myData.name, "wb");
 			
 			char* buf = new char[BUF_SIZE];

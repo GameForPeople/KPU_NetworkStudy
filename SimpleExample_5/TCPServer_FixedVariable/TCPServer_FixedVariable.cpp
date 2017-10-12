@@ -127,7 +127,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT
 	static SOCKET				client_sock;
 	static SOCKADDR_IN			clientaddr;
 	static int					addrlen;
-	static int					len = 0; //æ»æ∏.
+	static int					len = 0; // ¿¿ æ»Ω·~~~~
 
 	static CImage				Button;
 	static CImage				Grid;

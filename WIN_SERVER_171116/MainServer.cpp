@@ -1,6 +1,8 @@
 #pragma comment(lib, "ws2_32")
 
 #include "MainServer.h"
+#include <fstream>
+
 
 CRITICAL_SECTION ACCEPT_SECTION;
 
@@ -110,9 +112,73 @@ int main(int argc, char *argv[])
 	if (retVal == SOCKET_ERROR) err_quit("bind()");
 #pragma endregion
 
+#pragma region [Make File List]
+	SOCKET clientSock;
+	SOCKADDR_IN clientAddr;
+	int addrLen;
+	HANDLE hThread;
+
+	//char fileStr[256];
+
+	ThreadStruct threadArgument;
+	std::cout << "--------------------------------------------------  " << std::endl;
+	std::cout << "서비스하실 파일리스트에 관한 설정을 시작합니다. " << std::endl;
+	std::cout << "해당하는 기능의 인덱스를 입력해 주세요. " << std::endl;
+	std::cout << "--------------------------------------------------  " << std::endl;
+
+	std::cout << "  1. FileListData.txt의 내용을 통한 파일 리스트 생성" << std::endl;
+	std::cout << "  2. Use Define Data in program " << std::endl;
+	std::cout << "  3. 파일 리스트 데이터 수동 생성 " << std::endl;
+	std::cout << "    ---------------------------->>  ";
+
+	int selectFunction;
+	std::cin >> selectFunction;
+
+	if (selectFunction == 1) {
+		std::ifstream inFile("FileListData.txt", std::ios::in);
+		char inputString[256];
+
+		for (int i = 0; i < 5; i++) {
+			inFile >> inputString;
+			memcpy(threadArgument.fileName[i], inputString, sizeof(inputString));
+			inputString[0] = '\0';
+		}
+		
+		inFile.close();
+	}
+	else if (selectFunction == 2) {
+		memcpy(threadArgument.fileName[0], "MovieFile_1.mp4", 16);
+		memcpy(threadArgument.fileName[1], "MovieFile_2.mp4", 16);
+		memcpy(threadArgument.fileName[2], "MovieFile_3.mp4", 16);
+		memcpy(threadArgument.fileName[3], "MovieFile_4.mp4", 16);
+		memcpy(threadArgument.fileName[4], "MovieFile_5.mp4", 16);
+	}
+	else if (selectFunction == 3) {
+		std::cout << " 꼭 파일이 서버 내에 있는지 확인해 주세요!  " << std::endl;
+		char inputString[256];
+		for (int i = 0; i < 5; i++) {
+			std::cout << "   " << i + 1 << "번째 파일 이름을 입력해 주세요! : ";
+			rewind(stdin);
+			std::cin >> inputString;
+			rewind(stdin);
+
+			memcpy(threadArgument.fileName[i], inputString, sizeof(inputString));
+			inputString[0] = '\0';
+		}
+	}
+
+	std::cout << "    서버에서 제공하는 파일리스트는 다음과 같습니다.  " << std::endl;
+	for (int i = 0; i < 5; i++) {
+		std::cout << "       " << i +1 << "번 째 파일리스트의 파일 이름은 "<<  threadArgument.fileName[i] << "  입니다. " << std::endl;
+	}
+
+#pragma endregion
+
 #pragma region [ Listen() ]
 	retVal = listen(listenSock, SOMAXCONN);
 	if (retVal == SOCKET_ERROR) err_quit("listen()");
+
+	std::cout << std::endl << std::endl;
 
 	std::cout << "-------- TCP 파일 전송 프로그램 서버 -----------" << std::endl;
 	std::cout << "I  P : " << inet_ntoa(serverAddr.sin_addr) << std::endl;
@@ -121,21 +187,8 @@ int main(int argc, char *argv[])
 
 #pragma endregion
 
+
 #pragma region [Thread Acept]
-	SOCKET clientSock;
-	SOCKADDR_IN clientAddr;
-	int addrLen;
-	HANDLE hThread;
-
-	char fileStr[256];
-
-	ThreadStruct threadArgument;
-	memcpy(threadArgument.fileName[0], "MovieFile_1.mp4", 16);
-	memcpy(threadArgument.fileName[1], "MovieFile_2.mp4", 16);
-	memcpy(threadArgument.fileName[2], "MovieFile_3.mp4", 16);
-	memcpy(threadArgument.fileName[3], "MovieFile_4.mp4", 16);
-	memcpy(threadArgument.fileName[4], "MovieFile_5.mp4", 16);
-
 
 	while (7) {
 		//accept

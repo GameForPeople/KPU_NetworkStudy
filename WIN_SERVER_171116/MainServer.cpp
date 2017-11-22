@@ -3,6 +3,7 @@
 #include "MainServer.h"
 #include <fstream>
 
+#define TEST_CODE_1
 
 CRITICAL_SECTION ACCEPT_SECTION;
 
@@ -35,51 +36,62 @@ DWORD WINAPI ProcessClient(LPVOID arg) {
 	retVal = send(clientSock, (char *)&fileList, sizeof(fileList), 0);
 	if (retVal == SOCKET_ERROR) { err_display("send()"); }
 
-	retVal = recv(clientSock, (char *)&needData, sizeof(needData), 0);
-	if (retVal == SOCKET_ERROR) { err_display("recv()"); }
-	else if (!retVal) return 0;
+#ifdef TEST_CODE_1
+	while (7) {
+#endif
+		std::cout << "요청 대기중입니다. " << std::endl;
+		
+		retVal = recv(clientSock, (char *)&needData, sizeof(needData), 0);
+		if (retVal == SOCKET_ERROR) { err_display("recv()"); break; }
+		else if (!retVal) return 0;
+		
+		std::cout << "요청을 받았습니다. " << std::endl;
 
-	// 보낼 데이터 만들기
-	FILE *in;
-	int ch;
-	std::vector<int> cont;
-	unsigned long long fileSize;
-	int len;
 
-	//error 확인.. 이름 제대로..?
-	std::cout << "전송되는 파일의 이름은 : " << fileList.fileName[needData.type] << "  입니다. " << std::endl;
+		// 보낼 데이터 만들기
+		FILE *in;
+		int ch;
+		std::vector<int> cont;
+		unsigned long long fileSize;
+		int len;
 
-	if ((in = fopen(fileList.fileName[needData.type], "rb")) == NULL) { fputs("파일 열기 에러!", stderr); exit(1); }
-	fseek(in, 0, SEEK_END);
-	fileSize = _ftelli64(in);
-	fseek(in, 0, SEEK_SET);
+		//error 확인.. 이름 제대로..?
+		std::cout << "전송되는 파일의 이름은 : " << fileList.fileName[needData.type] << "  입니다. " << std::endl;
 
-	FixDataStruct fixData;
-	fixData.size = fileSize;
+		if ((in = fopen(fileList.fileName[needData.type], "rb")) == NULL) { fputs("파일 열기 에러!", stderr); exit(1); }
+		fseek(in, 0, SEEK_END);
+		fileSize = _ftelli64(in);
+		fseek(in, 0, SEEK_SET);
 
-	retVal = send(clientSock, (char *)&(fixData), sizeof(fixData), 0);
+		FixDataStruct fixData;
+		fixData.size = fileSize;
 
-	//std::cout << "전송되는 파일 (" << fileList.fileName[needData.type] << ") 의 사이즈 크기 값( "<< fixData.size << ")을 알려주었습니다. " << std::endl;
+		retVal = send(clientSock, (char *)&(fixData), sizeof(fixData), 0);
 
-	len = fileSize / BIG_DATA_COUNT;
-	char *buf = new char[len];
+		//std::cout << "전송되는 파일 (" << fileList.fileName[needData.type] << ") 의 사이즈 크기 값( "<< fixData.size << ")을 알려주었습니다. " << std::endl;
 
-	for (int i = 0; i < BIG_DATA_COUNT; i++) {
-		fread(buf, sizeof(char), len, in);
-		retVal = send(clientSock, buf, len, 0);
-		if (retVal == SOCKET_ERROR) { err_display("send()"); }
+		len = fileSize / BIG_DATA_COUNT;
+		char *buf = new char[len];
+
+		for (int i = 0; i < BIG_DATA_COUNT; i++) {
+			fread(buf, sizeof(char), len, in);
+			retVal = send(clientSock, buf, len, 0);
+			if (retVal == SOCKET_ERROR) { err_display("send()"); }
+		}
+
+		if (fixData.size - fixData.size / BIG_DATA_COUNT * BIG_DATA_COUNT) {
+			retVal = send(clientSock, buf, fixData.size - fixData.size / BIG_DATA_COUNT * BIG_DATA_COUNT, 0);
+			if (retVal == SOCKET_ERROR) { err_display("send()"); }
+		}
+		std::cout << "전송되는 파일 (" << fileList.fileName[needData.type] << ") 의 사이즈( " << fixData.size << ")만큼 전송하였습니다. " << std::endl;
+		fclose(in); // 파일 닫기
+
+#ifdef TEST_CODE_1
 	}
-
-	if (fixData.size - fixData.size / BIG_DATA_COUNT * BIG_DATA_COUNT) {
-		retVal = send(clientSock, buf, fixData.size - fixData.size / BIG_DATA_COUNT * BIG_DATA_COUNT, 0);
-		if (retVal == SOCKET_ERROR) { err_display("send()"); }
-	}
-	std::cout << "전송되는 파일 (" << fileList.fileName[needData.type] << ") 의 사이즈( " << fixData.size << ")만큼 전송하였습니다. " << std::endl;
+#endif
 
 	closesocket(clientSock);
 	std::cout << "[ 클라이언트 접속 종료 : " << inet_ntoa(clientAddr.sin_addr) << "  PORT : " << ntohs(clientAddr.sin_port)  << std::endl;
-
-	fclose(in); // 파일 닫기
 
 	return 0;
 }

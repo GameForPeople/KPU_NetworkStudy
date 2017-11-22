@@ -11,6 +11,8 @@
 #include "MainClient.h"
 #include "resource.h"
 
+//#define TEST_CODE_1
+
 int selectFile{0};
 //사용자 정의 데이터 수신 함수
 
@@ -33,6 +35,11 @@ static HWND progressBar;
 static int fileSize{};
 static int recvDataSize{};
 static bool isFlag{ true };
+
+#ifdef TEST_CODE_1
+static bool isOnButton1{ true };
+static bool isOnButton2{ true };
+#endif
 
 CRITICAL_SECTION PERCENT_SECTION;
 
@@ -58,12 +65,15 @@ int recvn(SOCKET s, char *buf, int len, int flags)
 DWORD WINAPI ThreadFunction(LPVOID arg){
 	ThreadStruct *threadStruct = (ThreadStruct *)arg;
 	std::cout << threadStruct->fileName << "  " << sizeof(threadStruct->fileName) << std::endl;
+	
 	//char* fileName{};
 	//memcpy(fileName, threadStruct->fileName, sizeof(threadStruct->fileName));
+
 	static FixDataStruct fixData;
 	int	retVal = recv(sock, (char *)&(fixData), sizeof(fixData), 0);
 
 	fileSize = fixData.size;
+	recvDataSize = 0;
 	std::cout << "받을 파일의 크기는 : " << fixData.size << " 입니다." << std::endl;
 
 	long long int bufSize = fixData.size / BIG_DATA_COUNT;
@@ -101,14 +111,19 @@ DWORD WINAPI ThreadFunction(LPVOID arg){
 	
 	fclose(fp);
 
+	isOnCreateThread = false;
+	
+#ifdef TEST_CODE_1
+	isOnButton2 = true;
+#endif
+	std::cout << "쓰레드를 정상적으로 종료했습니다." << std::endl;
 	return 0;
 }
 
 BOOL CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 	switch (uMsg) {
-
-	case WM_INITDIALOG:
+	case WM_INITDIALOG: 
 		CheckRadioButton(hDlg, IDC_RADIO1, IDC_RADIO5, IDC_RADIO1); // hdlg안에 있는 1~4까지에서 체크
 		SetDlgItemText(hDlg, IDC_IPADDRESS1, "127.000.000.001");
 		//InitCommonControls();
@@ -116,7 +131,7 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		SendMessage(progressBar, PBM_SETRANGE, 0, MAKELPARAM(0, 100));
 		SendMessage(progressBar, PBM_SETPOS, 0, 0);
 		InitializeCriticalSection(&PERCENT_SECTION);
-		
+
 #pragma region [// 윈속 초기화]
 		static WSADATA wsa;
 		if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
@@ -124,10 +139,10 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 #pragma endregion
 
 #pragma region [ socket() ]
-	sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (sock == INVALID_SOCKET) err_quit("socket()");
+		sock = socket(AF_INET, SOCK_STREAM, 0);
+		if (sock == INVALID_SOCKET) err_quit("socket()");
 #pragma endregion
-
+	
 		return true;
 	case WM_TIMER:
 		if (recvDataSize) {
@@ -135,8 +150,11 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			SendMessage(progressBar, PBM_SETPOS, (float)recvDataSize / (float)fileSize * 100, 0);
 			//isFlag = true;
 			LeaveCriticalSection(&PERCENT_SECTION);
-			if(recvDataSize == fileSize)
+			
+			if (recvDataSize == fileSize) {
 				KillTimer(hDlg, 0);
+
+			}
 		}
 		break;
 	case WM_COMMAND:
@@ -150,60 +168,75 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			DeleteCriticalSection(&PERCENT_SECTION);
 			return true;
 		case IDC_BUTTON1:	//ip주소 입력후 누르는 버튼
-			//HANDLE IPADDRESS = GetDlgItem(hDlg, IDC_IPADDRESS1);         // 핸들을 얻고자 하는 컨트롤의 ID
-			static DWORD address;
-			SendMessage(GetDlgItem(hDlg, IDC_IPADDRESS1), IPM_GETADDRESS, 0, (LPARAM)&address);
+			//if (isOnButton1) {
+				//isOnButton1 = false;
+				//HANDLE IPADDRESS = GetDlgItem(hDlg, IDC_IPADDRESS1);         // 핸들을 얻고자 하는 컨트롤의 ID
 
-			#pragma region [ connect() ]
-			static SOCKADDR_IN serverAddr;
-			ZeroMemory(&serverAddr, sizeof(serverAddr));
-			serverAddr.sin_family = AF_INET;
-			serverAddr.sin_addr.s_addr = htonl(address);
-			serverAddr.sin_port = htons(SERVERPORT);
-			static int retVal = connect(sock, (SOCKADDR *)&serverAddr, sizeof(serverAddr));
-			if (retVal == SOCKET_ERROR) err_quit("bind()");
-			#pragma endregion
-			
-			retVal = recv(sock, (char*)&fileList, sizeof(fileList), 0);
+				static DWORD address;
+				SendMessage(GetDlgItem(hDlg, IDC_IPADDRESS1), IPM_GETADDRESS, 0, (LPARAM)&address);
 
-			//static HWND radio1 = GetDlgItem(hDlg, IDC_RADIO1);
-			//EnableWindow(radio1, true);
-			SetDlgItemText(hDlg, IDC_EDIT1, fileList.fileName[0]);
-			SetDlgItemText(hDlg, 1017, fileList.fileName[1]);
-			SetDlgItemText(hDlg, 1018, fileList.fileName[2]);
-			SetDlgItemText(hDlg, 1019, fileList.fileName[3]);
-			SetDlgItemText(hDlg, 1020, fileList.fileName[4]);
+#pragma region [ connect() ]
+				static SOCKADDR_IN serverAddr;
+				ZeroMemory(&serverAddr, sizeof(serverAddr));
+				serverAddr.sin_family = AF_INET;
+				serverAddr.sin_addr.s_addr = htonl(address);
+				serverAddr.sin_port = htons(SERVERPORT);
+				static int retVal = connect(sock, (SOCKADDR *)&serverAddr, sizeof(serverAddr));
+				if (retVal == SOCKET_ERROR) err_quit("bind()");
+#pragma endregion
 
-			break;
+				retVal = recv(sock, (char*)&fileList, sizeof(fileList), 0);
+
+				//static HWND radio1 = GetDlgItem(hDlg, IDC_RADIO1);
+				//EnableWindow(radio1, true);
+				SetDlgItemText(hDlg, IDC_EDIT1, fileList.fileName[0]);
+				SetDlgItemText(hDlg, 1017, fileList.fileName[1]);
+				SetDlgItemText(hDlg, 1018, fileList.fileName[2]);
+				SetDlgItemText(hDlg, 1019, fileList.fileName[3]);
+				SetDlgItemText(hDlg, 1020, fileList.fileName[4]);
+
+			//}
+				break;
 			//return true;
 		case IDC_BUTTON2: 	//파일 선택후 누르는 버튼
 			//flag = (IsDlgButtonChecked(hDlg, IDC_MAN) == BST_CHECKED);
-			if (IsDlgButtonChecked(hDlg, IDC_RADIO1) == BST_CHECKED)  selectFile = 0;
-			else if (IsDlgButtonChecked(hDlg, IDC_RADIO2) == BST_CHECKED) selectFile = 1;
-			else if (IsDlgButtonChecked(hDlg, IDC_RADIO3) == BST_CHECKED)  selectFile = 2;
-			else if (IsDlgButtonChecked(hDlg, IDC_RADIO4) == BST_CHECKED) selectFile = 3;
-			else if (IsDlgButtonChecked(hDlg, IDC_RADIO5) == BST_CHECKED) selectFile = 4;
 
-			NeedDataStruct needData;
-			needData.type = selectFile;
+#ifdef TEST_CODE_1
+			if (isOnButton2) {
+				isOnButton2 = false;
+#endif
+				if (IsDlgButtonChecked(hDlg, IDC_RADIO1) == BST_CHECKED)  selectFile = 0;
+				else if (IsDlgButtonChecked(hDlg, IDC_RADIO2) == BST_CHECKED) selectFile = 1;
+				else if (IsDlgButtonChecked(hDlg, IDC_RADIO3) == BST_CHECKED)  selectFile = 2;
+				else if (IsDlgButtonChecked(hDlg, IDC_RADIO4) == BST_CHECKED) selectFile = 3;
+				else if (IsDlgButtonChecked(hDlg, IDC_RADIO5) == BST_CHECKED) selectFile = 4;
 
-			retVal = send(sock, (char *)&needData, sizeof(needData), 0);
+				NeedDataStruct needData;
+				needData.type = selectFile;
 
-			if (!isOnCreateThread) {
-				isOnCreateThread = true;
-				static ThreadStruct threadArgument;
-				memcpy(threadArgument.fileName, fileList.fileName[selectFile], sizeof(fileList.fileName[selectFile]));
-				
-				std::cout << fileList.fileName[selectFile] << std::endl;
-				std::cout << threadArgument.fileName << std::endl;
+				static int retVal2 = send(sock, (char *)&needData, sizeof(needData), 0);
+				if (retVal2 == SOCKET_ERROR) err_quit("send()");
+				std::cout << " 전송햇습니다 " << std::endl;
 
-				HANDLE hThread = CreateThread(NULL, 0, ThreadFunction, &threadArgument, 0, NULL);
-				if (hThread == NULL) { closesocket(sock); }
-				else { CloseHandle(hThread); }
+				if (!isOnCreateThread) {
+					std::cout << " 쓰레드를 생성했습니다. " << std::endl;
 
-				SetTimer(hDlg, 0, 100, NULL);
-			}
+					isOnCreateThread = true;
+					static ThreadStruct threadArgument;
+					memcpy(threadArgument.fileName, fileList.fileName[selectFile], sizeof(fileList.fileName[selectFile]));
 
+					std::cout << fileList.fileName[selectFile] << std::endl;
+					std::cout << threadArgument.fileName << std::endl;
+
+					HANDLE hThread = CreateThread(NULL, 0, ThreadFunction, &threadArgument, 0, NULL);
+					if (hThread == NULL) { closesocket(sock); }
+					else { CloseHandle(hThread); }
+
+					SetTimer(hDlg, 0, 100, NULL);
+				}
+#ifdef TEST_CODE_1
+		}
+#endif
 			break;
 			//return true;
 		}
